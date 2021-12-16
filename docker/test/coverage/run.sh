@@ -80,7 +80,7 @@ LLVM_PROFILE_FILE='client_coverage_%5m.profraw' clickhouse-client --query "RENAM
 LLVM_PROFILE_FILE='client_coverage_%5m.profraw' clickhouse-client --query "RENAME TABLE datasets.visits_v1 TO test.visits"
 LLVM_PROFILE_FILE='client_coverage_%5m.profraw' clickhouse-client --query "SHOW TABLES FROM test"
 
-LLVM_PROFILE_FILE='client_coverage_%5m.profraw' clickhouse-test -j 8 --testname --shard --zookeeper --print-time 2>&1 | ts '%Y-%m-%d %H:%M:%S' | tee /test_result.txt
+LLVM_PROFILE_FILE='client_coverage_%5m.profraw' clickhouse-test -j "$(nproc)" --testname --shard --zookeeper --print-time 2>&1 | ts '%Y-%m-%d %H:%M:%S' | tee /test_result.txt
 
 readarray -t FAILED_TESTS < <(awk '/FAIL|TIMEOUT|ERROR/ { print substr($3, 1, length($3)-1) }' "/test_result.txt")
 
@@ -108,5 +108,5 @@ mv /*.profraw "$COVERAGE_DIR"
 mkdir -p "$SOURCE_DIR"/obj-x86_64-linux-gnu
 cd "$SOURCE_DIR"/obj-x86_64-linux-gnu && CC=clang-11 CXX=clang++-11 cmake .. && cd /
 llvm-profdata-11 merge -sparse "${COVERAGE_DIR}"/* -o clickhouse.profdata
-llvm-cov-11 export /usr/bin/clickhouse -instr-profile=clickhouse.profdata -j=16 -format=lcov -skip-functions -ignore-filename-regex "$IGNORE" > output.lcov
+llvm-cov-11 export /usr/bin/clickhouse -instr-profile=clickhouse.profdata -j="$(nproc)" -format=lcov -skip-functions -ignore-filename-regex "$IGNORE" > output.lcov
 genhtml output.lcov --ignore-errors source --output-directory "${OUTPUT_DIR}"
